@@ -1,15 +1,16 @@
-
-
-from fastapi import FastAPI, File, HTTPException, UploadFile
 from io import BytesIO
-
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
 from uuid import uuid4
 
-from backend.services.text_chunker import chunk_text
-from backend.services.vector_store import check_qdrant_connection
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
+from backend.services.embedding_service import create_embeddings
+from backend.services.text_chunker import chunk_text
+from backend.services.vector_store import (
+    check_qdrant_connection,
+    store_chunks,
+)
 
 
 app = FastAPI(
@@ -42,6 +43,7 @@ def health_check():
         },
     }
 
+
 @app.post("/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
@@ -57,7 +59,9 @@ async def upload_document(file: UploadFile = File(...)):
             status_code=400,
             detail="The uploaded PDF is empty.",
         )
+
     document_id = str(uuid4())
+
     try:
         reader = PdfReader(BytesIO(file_content))
         chunks = []
@@ -70,21 +74,26 @@ async def upload_document(file: UploadFile = File(...)):
             for page_chunk_index, chunk in enumerate(page_chunks):
                 chunks.append(
                     {
-                        "id": f"{document_id}-{global_chunk_index}",
+                        "id": str(uuid4()),
                         "document_id": document_id,
                         "chunk_index": global_chunk_index,
                         "text": chunk,
                         "character_count": len(chunk),
                         "metadata": {
-                        "page_number": page_number,
-                        "page_chunk_index": page_chunk_index,
-                        "source": file.filename,
+                            "page_number": page_number,
+                            "page_chunk_index": page_chunk_index,
+                            "source": file.filename,
                         },
                     }
                 )
 
-        global_chunk_index += 1
-        
+                global_chunk_index += 1
+
+        embeddings = create_embeddings(
+            [chunk["text"] for chunk in chunks]
+        )
+
+        store_chunks(chunks, embeddings)
 
     except PdfReadError:
         raise HTTPException(
