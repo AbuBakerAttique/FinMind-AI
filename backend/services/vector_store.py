@@ -1,8 +1,7 @@
 import os
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
-
+from qdrant_client.models import Distance, PointStruct, VectorParams , FieldCondition, Filter,MatchValue 
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = "financial_documents"
@@ -63,3 +62,41 @@ def store_chunks(
             points=points,
             wait=True,
         )
+def search_chunks(
+    query_vector: list[float],
+    document_id: str,
+    limit: int = 5,
+) -> list[dict]:
+    response = qdrant_client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_vector,
+        query_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="document_id",
+                    match=MatchValue(value=document_id),
+                )
+            ]
+        ),
+        limit=limit,
+        with_payload=True,
+        with_vectors=False,
+    )
+
+    results = []
+
+    for point in response.points:
+        payload = point.payload or {}
+        metadata = payload.get("metadata", {})
+
+        results.append(
+            {
+                "score": point.score,
+                "text": payload.get("text", ""),
+                "page_number": metadata.get("page_number"),
+                "source": metadata.get("source"),
+                "chunk_index": payload.get("chunk_index"),
+            }
+        )
+
+    return results

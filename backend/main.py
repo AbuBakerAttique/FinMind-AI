@@ -4,14 +4,19 @@ from uuid import uuid4
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-
-from backend.services.embedding_service import create_embeddings
+from pydantic import BaseModel, Field
+from backend.services.embedding_service import create_embeddings , create_embedding
 from backend.services.text_chunker import chunk_text
 from backend.services.vector_store import (
     check_qdrant_connection,
+    search_chunks,
     store_chunks,
 )
 
+class SearchRequest(BaseModel):
+    document_id: str
+    question: str = Field(min_length=1)
+    limit: int = Field(default=5, ge=1, le=10)
 
 app = FastAPI(
     title="FinMind AI",
@@ -107,4 +112,30 @@ async def upload_document(file: UploadFile = File(...)):
         "total_pages": len(reader.pages),
         "total_chunks": len(chunks),
         "chunks": chunks,
+    }
+
+
+@app.post("/documents/search")
+def search_document(request: SearchRequest):
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code=400,
+            detail="The question cannot be empty.",
+        )
+
+    query_vector = create_embedding(question)
+
+    results = search_chunks(
+        query_vector=query_vector,
+        document_id=request.document_id,
+        limit=request.limit,
+    )
+
+    return {
+        "document_id": request.document_id,
+        "question": question,
+        "results_count": len(results),
+        "results": results,
     }
