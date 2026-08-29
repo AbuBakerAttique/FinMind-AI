@@ -12,6 +12,7 @@ from backend.services.vector_store import (
     search_chunks,
     store_chunks,
 )
+from backend.services.llm_service import generate_answer
 
 class SearchRequest(BaseModel):
     document_id: str
@@ -138,4 +139,43 @@ def search_document(request: SearchRequest):
         "question": question,
         "results_count": len(results),
         "results": results,
+    }
+
+@app.post("/documents/ask")
+def ask_document(request: SearchRequest):
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code=400,
+            detail="The question cannot be empty.",
+        )
+
+    query_vector = create_embedding(question)
+
+    results = search_chunks(
+        query_vector=query_vector,
+        document_id=request.document_id,
+        limit=request.limit,
+    )
+
+    answer = generate_answer(
+        question=question,
+        search_results=results,
+    )
+
+    sources = [
+        {
+            "page_number": result["page_number"],
+            "source": result["source"],
+            "score": result["score"],
+        }
+        for result in results
+    ]
+
+    return {
+        "document_id": request.document_id,
+        "question": question,
+        "answer": answer,
+        "sources": sources,
     }
