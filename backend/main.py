@@ -5,7 +5,7 @@ from io import BytesIO
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-
+from uuid import uuid4
 
 from backend.services.text_chunker import chunk_text
 
@@ -40,24 +40,33 @@ async def upload_document(file: UploadFile = File(...)):
             status_code=400,
             detail="The uploaded PDF is empty.",
         )
-
+    document_id = str(uuid4())
     try:
         reader = PdfReader(BytesIO(file_content))
         chunks = []
+        global_chunk_index = 0
 
         for page_number, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
             page_chunks = chunk_text(text)
 
-            for chunk_index, chunk in enumerate(page_chunks):
+            for page_chunk_index, chunk in enumerate(page_chunks):
                 chunks.append(
                     {
-                        "page_number": page_number,
-                        "chunk_index": chunk_index,
+                        "id": f"{document_id}-{global_chunk_index}",
+                        "document_id": document_id,
+                        "chunk_index": global_chunk_index,
                         "text": chunk,
                         "character_count": len(chunk),
+                        "metadata": {
+                        "page_number": page_number,
+                        "page_chunk_index": page_chunk_index,
+                        "source": file.filename,
+                        },
                     }
                 )
+
+        global_chunk_index += 1
         
 
     except PdfReadError:
@@ -67,6 +76,7 @@ async def upload_document(file: UploadFile = File(...)):
         )
 
     return {
+        "document_id": document_id,
         "filename": file.filename,
         "total_pages": len(reader.pages),
         "total_chunks": len(chunks),
