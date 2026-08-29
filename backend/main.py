@@ -8,6 +8,9 @@ from pypdf.errors import PdfReadError
 from uuid import uuid4
 
 from backend.services.text_chunker import chunk_text
+from backend.services.vector_store import check_qdrant_connection
+
+
 
 app = FastAPI(
     title="FinMind AI",
@@ -23,7 +26,21 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    try:
+        check_qdrant_connection()
+    except Exception as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Qdrant is unavailable.",
+        ) from error
+
+    return {
+        "status": "healthy",
+        "services": {
+            "api": "healthy",
+            "qdrant": "healthy",
+        },
+    }
 
 @app.post("/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
