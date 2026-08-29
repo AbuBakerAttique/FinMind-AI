@@ -1,5 +1,11 @@
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from io import BytesIO
+
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
+
+
 app = FastAPI(
     title="FinMind AI",
     description="A local API for financial document analysis.",
@@ -32,8 +38,30 @@ async def upload_document(file: UploadFile = File(...)):
             detail="The uploaded PDF is empty.",
         )
 
+    try:
+        reader = PdfReader(BytesIO(file_content))
+
+        pages = []
+
+        for page_number, page in enumerate(reader.pages, start=1):
+            text = page.extract_text() or ""
+
+            pages.append(
+                {
+                    "page_number": page_number,
+                    "text": text,
+                    "character_count": len(text),
+                }
+            )
+
+    except PdfReadError:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is not a valid PDF.",
+        )
+
     return {
         "filename": file.filename,
-        "content_type": file.content_type,
-        "size_bytes": len(file_content),
+        "total_pages": len(pages),
+        "pages": pages,
     }
