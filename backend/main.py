@@ -1,10 +1,13 @@
 
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from io import BytesIO
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+
+from backend.services.text_chunker import chunk_text
 
 app = FastAPI(
     title="FinMind AI",
@@ -40,19 +43,22 @@ async def upload_document(file: UploadFile = File(...)):
 
     try:
         reader = PdfReader(BytesIO(file_content))
-
-        pages = []
+        chunks = []
 
         for page_number, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
+            page_chunks = chunk_text(text)
 
-            pages.append(
-                {
-                    "page_number": page_number,
-                    "text": text,
-                    "character_count": len(text),
-                }
-            )
+            for chunk_index, chunk in enumerate(page_chunks):
+                chunks.append(
+                    {
+                        "page_number": page_number,
+                        "chunk_index": chunk_index,
+                        "text": chunk,
+                        "character_count": len(chunk),
+                    }
+                )
+        
 
     except PdfReadError:
         raise HTTPException(
@@ -62,6 +68,7 @@ async def upload_document(file: UploadFile = File(...)):
 
     return {
         "filename": file.filename,
-        "total_pages": len(pages),
-        "pages": pages,
+        "total_pages": len(reader.pages),
+        "total_chunks": len(chunks),
+        "chunks": chunks,
     }
