@@ -10,3 +10,11 @@ __pycache__/
 
 # macOS metadata
 .DS_Store
+
+.env
+frontend/.env
+.venv/
+__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/

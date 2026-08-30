@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { API_BASE_URL } from "../config";
 function GrowthCalculator({ selectedDocument }) {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState(null);
@@ -25,19 +25,19 @@ function GrowthCalculator({ selectedDocument }) {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/documents/calculate-growth",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            document_id: selectedDocument.document_id,
-            question: question,
-            limit: 5,
-          }),
-        }
-      );
+  `${API_BASE_URL}/documents/calculate-growth`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      document_id: selectedDocument.document_id,
+      question: question,
+      limit: 5,
+    }),
+  }
+);
 
       const data = await response.json();
 

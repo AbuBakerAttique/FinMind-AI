@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { API_BASE_URL } from "../config";
 function AskDocument({ selectedDocument }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -27,19 +27,19 @@ function AskDocument({ selectedDocument }) {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/documents/ask",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            document_id: selectedDocument.document_id,
-            question: question,
-            limit: 5,
-          }),
-        }
-      );
+  `${API_BASE_URL}/documents/ask`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      document_id: selectedDocument.document_id,
+      question: question,
+      limit: 5,
+    }),
+  }
+);
 
       const data = await response.json();
 

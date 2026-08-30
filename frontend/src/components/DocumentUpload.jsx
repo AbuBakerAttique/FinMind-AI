@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { API_BASE_URL } from "../config";
 function DocumentUpload({ onUploadComplete }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -24,12 +24,12 @@ function DocumentUpload({ onUploadComplete }) {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/documents/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+  `${API_BASE_URL}/documents/upload`,
+  {
+    method: "POST",
+    body: formData,
+  }
+);
 
       const data = await response.json();
 

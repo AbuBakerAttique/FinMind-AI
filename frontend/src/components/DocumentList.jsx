@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-
+import { API_BASE_URL } from "../config";
 async function fetchDocuments() {
-  const response = await fetch("http://localhost:8000/documents");
+  const response = await fetch(`${API_BASE_URL}/documents`);
   const data = await response.json();
 
   if (!response.ok) {
@@ -79,11 +79,11 @@ function DocumentList({
 
     try {
       const response = await fetch(
-        `http://localhost:8000/documents/${document.document_id}`,
-        {
-          method: "DELETE",
-        }
-      );
+  `${API_BASE_URL}/documents/${document.document_id}`,
+  {
+    method: "DELETE",
+  }
+);
 
       const data = await response.json();
 

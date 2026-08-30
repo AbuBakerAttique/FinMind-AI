@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import { useEffect, useState } from "react";
 
 function HealthStatus() {
@@ -7,7 +8,7 @@ function HealthStatus() {
   useEffect(() => {
     async function checkBackend() {
       try {
-        const response = await fetch("http://localhost:8000/health");
+        const response = await fetch(`${API_BASE_URL}/health`);
 
         if (!response.ok) {
           throw new Error("The backend returned an error.");

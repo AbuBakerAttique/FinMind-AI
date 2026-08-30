@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from uuid import uuid4
-
+from dotenv import load_dotenv
 from fastapi import (
     FastAPI,
     File,
@@ -14,6 +14,15 @@ from pydantic import BaseModel, Field
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from backend.services.embedding_service import (
+    create_embedding,
+    create_embeddings,
+)
 from backend.services.embedding_service import (
     create_embedding,
     create_embeddings,
@@ -33,7 +42,6 @@ from backend.services.vector_store import (
     store_chunks,
 )
 from fastapi.middleware.cors import CORSMiddleware
-
 class SearchRequest(BaseModel):
     document_id: str
     question: str = Field(min_length=1)
