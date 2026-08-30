@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function DocumentUpload() {
+function DocumentUpload({ onUploadComplete }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
@@ -17,6 +17,7 @@ function DocumentUpload() {
     setUploading(true);
     setUploadError("");
     setUploadResult(null);
+    
 
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -37,6 +38,7 @@ function DocumentUpload() {
       }
 
       setUploadResult(data);
+      onUploadComplete();
     } catch (error) {
       setUploadError(error.message);
     } finally {
