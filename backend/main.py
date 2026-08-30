@@ -11,6 +11,9 @@ from backend.services.vector_store import (
     check_qdrant_connection,
     search_chunks,
     store_chunks,
+    get_stored_documents,
+    delete_document,
+
 )
 from backend.services.llm_service import (
     extract_growth_values,
@@ -118,7 +121,14 @@ async def upload_document(file: UploadFile = File(...)):
         "total_chunks": len(chunks),
         "chunks": chunks,
     }
+@app.get("/documents")
+def list_documents():
+    documents = get_stored_documents()
 
+    return {
+        "documents_count": len(documents),
+        "documents": documents,
+    }
 
 @app.post("/documents/search")
 def search_document(request: SearchRequest):
@@ -345,4 +355,27 @@ def calculate_document_growth(request: SearchRequest):
         "citation": {
             "page_number": extracted.page_number,
         },
+    }
+
+
+@app.delete("/documents/{document_id}")
+def remove_document(document_id: str):
+    documents = get_stored_documents()
+
+    document_exists = any(
+        document["document_id"] == document_id
+        for document in documents
+    )
+
+    if not document_exists:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+    delete_document(document_id)
+
+    return {
+        "message": "Document deleted successfully.",
+        "document_id": document_id,
     }

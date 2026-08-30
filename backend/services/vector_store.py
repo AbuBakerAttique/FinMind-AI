@@ -1,8 +1,15 @@
 import os
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams , FieldCondition, Filter,MatchValue 
-
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    FilterSelector,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = "financial_documents"
 VECTOR_SIZE = 768
@@ -100,3 +107,78 @@ def search_chunks(
         )
 
     return results
+
+
+def get_stored_documents() -> list[dict]:
+    ensure_collection_exists()
+
+    documents = {}
+    offset = None
+
+    while True:
+        points, offset = qdrant_client.scroll(
+            collection_name=COLLECTION_NAME,
+            limit=100,
+            offset=offset,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        for point in points:
+            payload = point.payload or {}
+            metadata = payload.get("metadata", {})
+            document_id = payload.get("document_id")
+
+            if not document_id:
+                continue
+
+            if document_id not in documents:
+                documents[document_id] = {
+                    "document_id": document_id,
+                    "filename": metadata.get("source"),
+                    "chunk_count": 0,
+                    "page_numbers": set(),
+                }
+
+            documents[document_id]["chunk_count"] += 1
+
+            page_number = metadata.get("page_number")
+
+            if page_number is not None:
+                documents[document_id]["page_numbers"].add(
+                    page_number
+                )
+
+        if offset is None:
+            break
+
+    result = []
+
+    for document in documents.values():
+        page_numbers = document.pop("page_numbers")
+
+        document["total_pages"] = (
+            max(page_numbers) if page_numbers else 0
+        )
+
+        result.append(document)
+
+    return result
+
+
+
+def delete_document(document_id: str) -> None:
+    qdrant_client.delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=FilterSelector(
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            )
+        ),
+        wait=True,
+    )
