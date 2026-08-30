@@ -32,7 +32,7 @@ from backend.services.vector_store import (
     search_chunks,
     store_chunks,
 )
-
+from fastapi.middleware.cors import CORSMiddleware
 
 class SearchRequest(BaseModel):
     document_id: str
@@ -50,7 +50,13 @@ app = FastAPI(
     description="A local API for financial document analysis.",
     version="0.1.0",
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
