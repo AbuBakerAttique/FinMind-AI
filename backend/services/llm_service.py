@@ -24,7 +24,15 @@ class FinancialObservation(BaseModel):
         )
     )
 
+REQUIRED_MODELS = [
+    "nomic-embed-text",
+    LANGUAGE_MODEL,
+]
 
+
+def check_ollama_connection() -> None:
+    for model in REQUIRED_MODELS:
+        ollama_client.show(model)
 class GrowthValues(BaseModel):
     found: bool
     metric: str | None

@@ -1,30 +1,49 @@
+from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from uuid import uuid4
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import (
+    FastAPI,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
+from pydantic import BaseModel, Field
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-from pydantic import BaseModel, Field
-from backend.services.embedding_service import create_embeddings , create_embedding
-from backend.services.text_chunker import chunk_text
-from backend.services.vector_store import (
-    check_qdrant_connection,
-    search_chunks,
-    store_chunks,
-    get_stored_documents,
-    delete_document,
 
+from backend.services.embedding_service import (
+    create_embedding,
+    create_embeddings,
 )
+from backend.services.financial_calculator import calculate_growth
 from backend.services.llm_service import (
+    check_ollama_connection,
     extract_growth_values,
     generate_answer,
 )
-from decimal import Decimal, InvalidOperation
-from backend.services.financial_calculator import calculate_growth
+from backend.services.text_chunker import chunk_text
+from backend.services.vector_store import (
+    check_qdrant_connection,
+    delete_document,
+    get_stored_documents,
+    search_chunks,
+    store_chunks,
+)
+
+
 class SearchRequest(BaseModel):
     document_id: str
     question: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=10)
+
+
+class GrowthCalculationRequest(BaseModel):
+    previous_value: Decimal
+    current_value: Decimal
+
 
 app = FastAPI(
     title="FinMind AI",
@@ -39,21 +58,34 @@ def read_root():
 
 
 @app.get("/health")
-def health_check():
+def health_check(response: Response):
+    services = {
+        "api": "healthy",
+        "qdrant": "healthy",
+        "ollama": "healthy",
+    }
+
     try:
         check_qdrant_connection()
-    except Exception as error:
-        raise HTTPException(
-            status_code=503,
-            detail="Qdrant is unavailable.",
-        ) from error
+    except Exception:
+        services["qdrant"] = "unhealthy"
+
+    try:
+        check_ollama_connection()
+    except Exception:
+        services["ollama"] = "unhealthy"
+
+    if "unhealthy" in services.values():
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+        return {
+            "status": "unhealthy",
+            "services": services,
+        }
 
     return {
         "status": "healthy",
-        "services": {
-            "api": "healthy",
-            "qdrant": "healthy",
-        },
+        "services": services,
     }
 
 
@@ -80,11 +112,16 @@ async def upload_document(file: UploadFile = File(...)):
         chunks = []
         global_chunk_index = 0
 
-        for page_number, page in enumerate(reader.pages, start=1):
+        for page_number, page in enumerate(
+            reader.pages,
+            start=1,
+        ):
             text = page.extract_text() or ""
             page_chunks = chunk_text(text)
 
-            for page_chunk_index, chunk in enumerate(page_chunks):
+            for page_chunk_index, chunk in enumerate(
+                page_chunks
+            ):
                 chunks.append(
                     {
                         "id": str(uuid4()),
@@ -121,6 +158,8 @@ async def upload_document(file: UploadFile = File(...)):
         "total_chunks": len(chunks),
         "chunks": chunks,
     }
+
+
 @app.get("/documents")
 def list_documents():
     documents = get_stored_documents()
@@ -129,6 +168,30 @@ def list_documents():
         "documents_count": len(documents),
         "documents": documents,
     }
+
+
+@app.delete("/documents/{document_id}")
+def remove_document(document_id: str):
+    documents = get_stored_documents()
+
+    document_exists = any(
+        document["document_id"] == document_id
+        for document in documents
+    )
+
+    if not document_exists:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+    delete_document(document_id)
+
+    return {
+        "message": "Document deleted successfully.",
+        "document_id": document_id,
+    }
+
 
 @app.post("/documents/search")
 def search_document(request: SearchRequest):
@@ -155,11 +218,6 @@ def search_document(request: SearchRequest):
         "results": results,
     }
 
-class GrowthCalculationRequest(BaseModel):
-    previous_value: Decimal
-    current_value: Decimal
-
-
 
 @app.post("/documents/ask")
 def ask_document(request: SearchRequest):
@@ -184,14 +242,27 @@ def ask_document(request: SearchRequest):
         search_results=results,
     )
 
-    sources = [
-        {
-            "page_number": result["page_number"],
-            "source": result["source"],
-            "score": result["score"],
-        }
-        for result in results
-    ]
+    unique_sources = {}
+
+    for result in results:
+        source_key = (
+            result["source"],
+            result["page_number"],
+        )
+
+        existing_source = unique_sources.get(source_key)
+
+        if (
+            existing_source is None
+            or result["score"] > existing_source["score"]
+        ):
+            unique_sources[source_key] = {
+                "page_number": result["page_number"],
+                "source": result["source"],
+                "score": result["score"],
+            }
+
+    sources = list(unique_sources.values())
 
     return {
         "document_id": request.document_id,
@@ -199,7 +270,6 @@ def ask_document(request: SearchRequest):
         "answer": answer,
         "sources": sources,
     }
-
 
 
 @app.post("/calculations/growth")
@@ -292,90 +362,4 @@ def calculate_document_growth(request: SearchRequest):
         "citation": {
             "page_number": extracted.page_number,
         },
-    }
-    question = request.question.strip()
-
-    if not question:
-        raise HTTPException(
-            status_code=400,
-            detail="The question cannot be empty.",
-        )
-
-    query_vector = create_embedding(question)
-
-    results = search_chunks(
-        query_vector=query_vector,
-        document_id=request.document_id,
-        limit=request.limit,
-    )
-
-    extracted = extract_growth_values(
-        question=question,
-        search_results=results,
-    )
-
-    if (
-        not extracted.found
-        or extracted.previous_value is None
-        or extracted.current_value is None
-    ):
-        raise HTTPException(
-            status_code=422,
-            detail="The required financial values were not found.",
-        )
-
-    try:
-        previous_value = Decimal(extracted.previous_value)
-        current_value = Decimal(extracted.current_value)
-
-        calculation = calculate_growth(
-            previous_value=previous_value,
-            current_value=current_value,
-        )
-    except (InvalidOperation, ValueError) as error:
-        raise HTTPException(
-            status_code=422,
-            detail=str(error),
-        ) from error
-
-    return {
-        "metric": extracted.metric,
-        "previous_period": extracted.previous_period,
-        "current_period": extracted.current_period,
-        "unit": extracted.unit,
-        "calculation": {
-            key: str(value)
-            for key, value in calculation.items()
-        },
-        "formula": (
-            "percentage_change = "
-            "(current_value - previous_value) "
-            "/ previous_value * 100"
-        ),
-        "citation": {
-            "page_number": extracted.page_number,
-        },
-    }
-
-
-@app.delete("/documents/{document_id}")
-def remove_document(document_id: str):
-    documents = get_stored_documents()
-
-    document_exists = any(
-        document["document_id"] == document_id
-        for document in documents
-    )
-
-    if not document_exists:
-        raise HTTPException(
-            status_code=404,
-            detail="Document not found.",
-        )
-
-    delete_document(document_id)
-
-    return {
-        "message": "Document deleted successfully.",
-        "document_id": document_id,
     }

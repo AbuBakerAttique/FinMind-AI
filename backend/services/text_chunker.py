@@ -7,26 +7,64 @@ def chunk_text(
         raise ValueError("chunk_size must be greater than zero")
 
     if overlap < 0 or overlap >= chunk_size:
-        raise ValueError("overlap must be between 0 and chunk_size")
+        raise ValueError(
+            "overlap must be between 0 and chunk_size"
+        )
 
-    cleaned_text = " ".join(text.split())
+    words = text.split()
 
-    if not cleaned_text:
+    if not words:
         return []
 
     chunks = []
     start = 0
 
-    while start < len(cleaned_text):
-        end = min(start + chunk_size, len(cleaned_text))
-        chunk = cleaned_text[start:end].strip()
+    while start < len(words):
+        current_words = []
+        current_length = 0
+        end = start
 
-        if chunk:
-            chunks.append(chunk)
+        while end < len(words):
+            word = words[end]
+            added_length = len(word)
 
-        if end == len(cleaned_text):
+            if current_words:
+                added_length += 1
+
+            if (
+                current_words
+                and current_length + added_length > chunk_size
+            ):
+                break
+
+            current_words.append(word)
+            current_length += added_length
+            end += 1
+
+        chunks.append(" ".join(current_words))
+
+        if end >= len(words):
             break
 
-        start = end - overlap
+        next_start = end
+        overlap_length = 0
+
+        while next_start > start:
+            previous_word = words[next_start - 1]
+            added_length = len(previous_word)
+
+            if overlap_length:
+                added_length += 1
+
+            if overlap_length + added_length > overlap:
+                break
+
+            overlap_length += added_length
+            next_start -= 1
+
+        if next_start == start:
+            next_start = end
+
+        start = next_start
 
     return chunks
