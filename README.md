@@ -1,140 +1,316 @@
+<div align="center">
+
 # FinMind AI
 
-A privacy-focused financial document intelligence application that runs locally. FinMind AI extracts text from PDF reports, creates semantic embeddings, stores them in a vector database, retrieves relevant evidence, and generates cited answers using local AI models.
+### Local, privacy-focused financial document intelligence
 
-The project also includes a verified financial growth calculator that uses an LLM for structured value extraction and Python `Decimal` arithmetic for reliable calculations.
+Analyse financial reports with semantic search, page citations, local AI models, and verified financial calculations.
+
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-Frontend-61DAFB?logo=react&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Qdrant-2496ED?logo=docker&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Local_AI-111111)
+![Tests](https://img.shields.io/badge/Tests-pytest-0A9EDC?logo=pytest&logoColor=white)
+
+</div>
+
+<p align="center">
+  <img
+    src="docs/images/finmind-dashboard.png"
+    alt="FinMind AI dashboard showing service health, financial PDF analysis, cited answers, and verified calculations"
+    width="100%"
+  />
+</p>
+
+<p align="center">
+  <em>
+    Local financial document analysis with semantic search,
+    traceable citations, and deterministic calculations.
+  </em>
+</p>
+
+---
+
+## Overview
+
+FinMind AI is a local-first financial document analysis application.
+
+Users can upload a financial PDF, select the indexed document, ask natural-language questions, retrieve relevant evidence, generate answers with page citations, and calculate verified financial growth.
+
+The application uses retrieval-augmented generation rather than sending an entire document directly to a language model.
+
+Financial arithmetic is not delegated to the LLM. The model extracts structured values, Pydantic validates them, and Python performs the final calculation using `Decimal`.
+
+## Engineering highlights
+
+- Local-first architecture designed for document privacy
+- Retrieval-augmented generation with document-level filtering
+- Page-level citations for answer traceability
+- Structured LLM output validated with Pydantic
+- Financial calculations performed using Python `Decimal`
+- 768-dimensional semantic embeddings
+- Persistent Qdrant storage managed through Docker Compose
+- Automated API, workflow, validation, and unit tests
+- Environment-based backend and frontend configuration
+- Responsive React dashboard
+- Explicit loading, validation, and failure states
+- Generated OpenAPI documentation through FastAPI
 
 ## Features
 
-- Upload and process financial PDF documents
-- Extract text page by page
-- Split text into overlapping semantic chunks
-- Generate 768-dimensional embeddings locally
-- Store and search vectors using Qdrant
-- Ask natural-language questions about a selected document
-- Generate answers using a local language model
-- Return page-level source citations
-- Calculate verified financial growth
-- List, select, and delete uploaded documents
-- Monitor FastAPI, Qdrant, and Ollama health
-- Responsive React dashboard
-- Automated API and business-logic tests
-- Environment-based configuration
-- Persistent Qdrant storage through Docker Compose
+### Document management
 
-## Architecture
+- Upload text-based PDF documents
+- Validate file type and empty files
+- Extract text page by page
+- Split extracted text into overlapping chunks
+- Generate document and chunk identifiers
+- Store page and source metadata
+- List indexed documents
+- Select an active document
+- Delete documents and their stored vectors
+
+### AI document analysis
+
+- Generate embeddings locally with Ollama
+- Store and retrieve vectors through Qdrant
+- Filter retrieval by `document_id`
+- Ask natural-language questions
+- Generate context-based answers
+- Return page-level citations
+- Deduplicate repeated sources
+
+### Verified calculations
+
+- Retrieve relevant financial evidence
+- Extract structured periods and values
+- Validate extracted data with Pydantic
+- Calculate absolute change using Python
+- Calculate percentage change using Python
+- Use exact decimal arithmetic
+- Return the formula and source page
+
+### Reliability
+
+- Health checks for FastAPI, Qdrant, and Ollama
+- Automated API tests
+- Unit tests for text chunking
+- Unit tests for financial calculations
+- Mocked workflow tests
+- Request and file validation
+- Frontend lint validation
+
+---
+
+## System architecture
 
 ```mermaid
 flowchart LR
-    User[User] --> React[React frontend]
-    React --> FastAPI[FastAPI backend]
+    user([User])
 
-    FastAPI --> PDF[PDF extraction]
-    PDF --> Chunks[Text chunking]
-    Chunks --> Embeddings[Ollama embedding model]
-    Embeddings --> Qdrant[(Qdrant vector database)]
+    subgraph frontendGroup[Frontend]
+        react[React Dashboard]
+    end
 
-    React --> Question[User question]
-    Question --> FastAPI
-    FastAPI --> QueryEmbedding[Question embedding]
-    QueryEmbedding --> Qdrant
-    Qdrant --> Context[Relevant document chunks]
-    Context --> LLM[Ollama language model]
-    LLM --> Answer[Cited answer]
+    subgraph backendGroup[Backend]
+        api[FastAPI]
+        pdf[PDF Processor]
+        chunker[Text Chunker]
+        calculator[Financial Calculator]
+    end
 
-    Context --> Extraction[Structured value extraction]
-    Extraction --> Calculator[Python Decimal calculation]
-    Calculator --> Verified[Verified growth result]
+    subgraph aiGroup[Local AI]
+        embedding[Embedding Model]
+        language[Language Model]
+    end
+
+    subgraph storageGroup[Vector Storage]
+        qdrant[(Qdrant)]
+        volume[(Docker Volume)]
+    end
+
+    user --> react
+    react -->|HTTP and JSON| api
+
+    api --> pdf
+    pdf --> chunker
+    chunker --> embedding
+    embedding --> qdrant
+
+    api -->|Question text| embedding
+    api -->|Vector search| qdrant
+    qdrant -->|Relevant chunks| api
+
+    api --> language
+    language -->|Answer or values| api
+    api --> calculator
+
+    qdrant --> volume
+
+    api -->|Cited response| react
+    react --> user
 ```
+
+---
+
+## User workflow
+
+```mermaid
+flowchart TD
+    open([Open FinMind AI])
+    health[Check local services]
+    upload[/Select financial PDF/]
+    validate{Valid PDF?}
+    error[Display validation error]
+    process[Extract pages and text]
+    embed[Create embeddings]
+    store[(Store in Qdrant)]
+    select[Select uploaded document]
+    action{Choose analysis}
+    ask[Ask a document question]
+    calculate[Request growth calculation]
+    search[Retrieve relevant chunks]
+    answer[Generate cited answer]
+    verify[Extract values and calculate]
+    result[/Display result and citations/]
+    manage[View or delete documents]
+
+    open --> health
+    health --> upload
+    upload --> validate
+
+    validate -->|No| error
+    error --> upload
+
+    validate -->|Yes| process
+    process --> embed
+    embed --> store
+    store --> select
+    select --> action
+
+    action -->|Ask AI| ask
+    action -->|Calculate growth| calculate
+
+    ask --> search
+    search --> answer
+    answer --> result
+
+    calculate --> search
+    search --> verify
+    verify --> result
+
+    result --> manage
+    manage --> select
+```
+
+---
 
 ## Document-processing pipeline
 
-```text
-PDF
-→ pages
-→ extracted text
-→ overlapping chunks
-→ 768-dimensional embeddings
-→ Qdrant vectors and metadata
+```mermaid
+flowchart LR
+    pdf[/PDF document/]
+    pages[Extract pages]
+    text[Extract text]
+    chunks[Create overlapping chunks]
+    embeddings[Generate embeddings]
+    vectors[(Store vectors)]
+    metadata[(Store metadata)]
+
+    pdf --> pages
+    pages --> text
+    text --> chunks
+    chunks --> embeddings
+    embeddings --> vectors
+    chunks --> metadata
 ```
 
-## Question-answering pipeline
+Each stored chunk includes:
 
-```text
-Question
-→ question embedding
-→ Qdrant similarity search
-→ relevant document chunks
-→ local language model
-→ answer with page citations
+```json
+{
+  "document_id": "unique-document-id",
+  "chunk_index": 0,
+  "text": "Extracted financial text",
+  "character_count": 956,
+  "metadata": {
+    "page_number": 1,
+    "page_chunk_index": 0,
+    "source": "financial-report.pdf"
+  }
+}
 ```
 
-## Technology stack
+---
 
-### Backend
+## Question-answering sequence
 
-- Python 3.12
-- FastAPI
-- Uvicorn
-- Pydantic
-- pypdf
-- python-dotenv
-- pytest
+```mermaid
+sequenceDiagram
+    title Document question-answering flow
 
-### Frontend
+    participant User
+    participant React
+    participant FastAPI
+    participant Ollama
+    participant Qdrant
 
-- React
-- Vite
-- JavaScript
-- CSS
-- ESLint
+    User->>React: Enter question
+    React->>FastAPI: POST /documents/ask
+    FastAPI->>Ollama: Create question embedding
+    Ollama-->>FastAPI: 768-dimensional vector
+    FastAPI->>Qdrant: Search selected document
+    Qdrant-->>FastAPI: Relevant chunks and metadata
+    FastAPI->>Ollama: Generate answer from context
+    Ollama-->>FastAPI: Cited answer
+    FastAPI-->>React: Answer and source pages
+    React-->>User: Display cited answer
+```
 
-### AI and storage
+---
 
-- Ollama
-- `nomic-embed-text` embedding model
-- `qwen3:4b-instruct` language model
-- Qdrant vector database
-- Docker and Docker Compose
+## Verified financial calculation
 
-## Why Qdrant?
+```mermaid
+sequenceDiagram
+    title Verified growth calculation flow
 
-Qdrant stores document chunks together with their embeddings and metadata.
+    participant User
+    participant React
+    participant FastAPI
+    participant Qdrant
+    participant Ollama
+    participant Calculator
 
-Each stored point contains:
+    User->>React: Enter growth question
+    React->>FastAPI: POST /documents/calculate-growth
+    FastAPI->>Ollama: Create question embedding
+    Ollama-->>FastAPI: Query vector
+    FastAPI->>Qdrant: Retrieve financial evidence
+    Qdrant-->>FastAPI: Text and page metadata
+    FastAPI->>Ollama: Extract periods and values
+    Ollama-->>FastAPI: Structured financial values
+    FastAPI->>Calculator: Calculate with Decimal
+    Calculator-->>FastAPI: Verified growth result
+    FastAPI-->>React: Values, formula, and citation
+    React-->>User: Display verified calculation
+```
 
-- A unique point ID
-- A 768-dimensional vector
-- Document ID
-- Chunk index
-- Extracted text
-- Page number
-- Source filename
-
-When a user asks a question, FinMind AI creates an embedding for the question and asks Qdrant to retrieve the most semantically similar chunks from the selected document.
-
-## Why Ollama?
-
-Ollama runs the AI models locally.
-
-FinMind AI uses two model types:
-
-- `nomic-embed-text` converts text into numerical vectors.
-- `qwen3:4b-instruct` generates answers and extracts structured financial values.
-
-Document context is processed locally rather than being sent to a paid cloud-model API.
-
-## Verified financial calculations
+### Calculation design
 
 The language model does not perform the final arithmetic.
 
-Instead:
+The calculation flow is:
 
-1. The model extracts the metric, periods, values, unit, and page number.
-2. Pydantic validates the structured response.
-3. Python converts values to `Decimal`.
-4. Python calculates the absolute and percentage change.
-5. The API returns the values, formula, result, and citation.
+```text
+Retrieved document evidence
+→ structured LLM extraction
+→ Pydantic validation
+→ Decimal conversion
+→ Python calculation
+→ result with citation
+```
 
 Formula:
 
@@ -143,10 +319,61 @@ percentage_change =
 (current_value - previous_value) / previous_value × 100
 ```
 
+Example:
+
+```text
+Previous period: 2024
+Current period: 2025
+Previous value: 391035
+Current value: 416161
+Absolute change: 25126
+Percentage change: 6.43%
+Citation: Page 1
+```
+
+---
+
+## Technology stack
+
+### Backend
+
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Backend language |
+| FastAPI | REST API and OpenAPI documentation |
+| Uvicorn | ASGI development server |
+| Pydantic | Request and structured-output validation |
+| pypdf | PDF text extraction |
+| python-dotenv | Environment configuration |
+| pytest | Automated testing |
+
+### Frontend
+
+| Technology | Purpose |
+|---|---|
+| React | User interface |
+| Vite | Development server and production build |
+| JavaScript | Frontend application logic |
+| CSS | Responsive dashboard design |
+| ESLint | Static code analysis |
+
+### AI and data
+
+| Technology | Purpose |
+|---|---|
+| Ollama | Local model runtime |
+| `nomic-embed-text` | 768-dimensional embeddings |
+| `qwen3:4b-instruct` | Answers and structured extraction |
+| Qdrant | Vector database |
+| Docker Compose | Qdrant container management |
+| Docker volume | Persistent vector storage |
+
+---
+
 ## Project structure
 
 ```text
-FinMind AI/
+FinMind-AI/
 ├── backend/
 │   ├── main.py
 │   └── services/
@@ -155,6 +382,7 @@ FinMind AI/
 │       ├── llm_service.py
 │       ├── text_chunker.py
 │       └── vector_store.py
+│
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -169,26 +397,36 @@ FinMind AI/
 │   │   └── index.css
 │   ├── .env.example
 │   └── package.json
+│
 ├── tests/
 │   ├── test_api.py
 │   ├── test_document_workflow.py
 │   ├── test_financial_calculator.py
 │   └── test_text_chunker.py
+│
+├── docs/
+│   └── images/
+│       └── finmind-dashboard.png
+│
 ├── .env.example
 ├── compose.yaml
 ├── requirements.txt
 └── README.md
 ```
 
+---
+
 ## Prerequisites
 
-Install:
+Install the following software:
 
 - Python 3.12 or newer
 - Node.js 20.19 or newer
 - Docker Desktop
 - Ollama
 - Git
+
+---
 
 ## Local installation
 
@@ -206,7 +444,7 @@ python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install backend dependencies:
+Install dependencies:
 
 ```bash
 python -m pip install --upgrade pip
@@ -228,7 +466,15 @@ OLLAMA_URL=http://localhost:11434
 
 ### 4. Start Qdrant
 
-Make sure Docker Desktop is running, then run:
+Start Docker Desktop.
+
+Create the persistent volume if it does not already exist:
+
+```bash
+docker volume create finmind_qdrant_data
+```
+
+Start Qdrant:
 
 ```bash
 docker compose up -d
@@ -253,7 +499,7 @@ ollama pull nomic-embed-text
 ollama pull qwen3:4b-instruct
 ```
 
-Confirm that Ollama is running:
+Confirm the models are installed:
 
 ```bash
 ollama list
@@ -265,13 +511,13 @@ ollama list
 python -m uvicorn backend.main:app --reload
 ```
 
-Backend:
+Backend API:
 
 ```text
 http://localhost:8000
 ```
 
-API documentation:
+Swagger documentation:
 
 ```text
 http://localhost:8000/docs
@@ -283,7 +529,7 @@ Health endpoint:
 http://localhost:8000/health
 ```
 
-### 7. Configure and start the frontend
+### 7. Configure the frontend
 
 Open another terminal:
 
@@ -291,6 +537,17 @@ Open another terminal:
 cd frontend
 cp .env.example .env
 npm install
+```
+
+Default frontend configuration:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+### 8. Start the frontend
+
+```bash
 npm run dev
 ```
 
@@ -300,60 +557,71 @@ Frontend:
 http://localhost:5173
 ```
 
+---
+
 ## API endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/` | Backend status message |
-| `GET` | `/health` | Check API, Qdrant, and Ollama |
+| `GET` | `/` | Return the backend status message |
+| `GET` | `/health` | Check FastAPI, Qdrant, and Ollama |
 | `POST` | `/documents/upload` | Upload and index a PDF |
-| `GET` | `/documents` | List stored documents |
-| `DELETE` | `/documents/{document_id}` | Delete a document |
-| `POST` | `/documents/search` | Search relevant chunks |
+| `GET` | `/documents` | List indexed documents |
+| `DELETE` | `/documents/{document_id}` | Delete a document and its vectors |
+| `POST` | `/documents/search` | Search relevant document chunks |
 | `POST` | `/documents/ask` | Generate a cited answer |
 | `POST` | `/calculations/growth` | Calculate growth from supplied values |
 | `POST` | `/documents/calculate-growth` | Extract and calculate document growth |
 
-## Example question
+Interactive API documentation is available at:
 
 ```text
-How much did total net sales grow from 2024 to 2025?
+http://localhost:8000/docs
 ```
 
-Example verified result:
+---
 
-```text
-Previous period: 2024
-Current period: 2025
-Previous value: 391035
-Current value: 416161
-Absolute change: 25126
-Percentage change: 6.43%
-Citation: Page 1
+## Running automated tests
+
+Activate the virtual environment:
+
+```bash
+source .venv/bin/activate
 ```
 
-## Running the tests
-
-Activate the Python virtual environment and run:
+Run the complete backend test suite:
 
 ```bash
 python -m pytest -v
 ```
 
-The automated test suite covers:
+The tests cover:
 
-- Root and health endpoints
-- Qdrant and Ollama failure states
-- File validation
-- Request validation
-- Text chunking and overlap
-- Decimal financial calculations
+- Root endpoint
+- Health endpoint
+- Qdrant failure state
+- Ollama failure state
+- Invalid file types
+- Empty PDFs
+- Missing request fields
+- Text chunking
+- Chunk overlap
+- Financial growth
+- Negative growth
+- Decimal rounding
+- Division-by-zero protection
 - Mocked PDF processing
-- Document listing and deletion
-- Semantic-search workflow
-- Answer generation and citation deduplication
+- Document listing
+- Document deletion
+- Semantic search workflow
+- Answer generation
+- Citation deduplication
 
-## Frontend code quality
+External Ollama and Qdrant operations are mocked in workflow tests, preventing changes to real stored data.
+
+---
+
+## Frontend quality checks
 
 Run ESLint:
 
@@ -362,17 +630,51 @@ cd frontend
 npm run lint
 ```
 
-Create a production build:
+Create an optimized production build:
 
 ```bash
 npm run build
 ```
 
-## Stopping the application
+The production files are generated inside:
+
+```text
+frontend/dist/
+```
+
+---
+
+## Starting the project later
+
+### Terminal 1: Qdrant
+
+```bash
+docker compose up -d
+```
+
+### Terminal 2: Backend
+
+```bash
+source .venv/bin/activate
+python -m uvicorn backend.main:app --reload
+```
+
+### Terminal 3: Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Make sure Ollama is running before using embeddings or AI answers.
+
+---
+
+## Stopping the project
 
 Stop FastAPI and React using `Control + C` in their terminals.
 
-Stop Qdrant:
+Stop Qdrant while preserving its data:
 
 ```bash
 docker compose stop
@@ -384,33 +686,91 @@ Restart it later:
 docker compose start
 ```
 
-## Privacy
+---
+
+## Privacy and data handling
 
 FinMind AI is designed for local document processing:
 
 - Qdrant runs locally through Docker.
 - Ollama models run locally.
-- PDF text and vectors remain on the local machine.
-- Local configuration files are excluded from Git.
+- PDF text is processed by the local backend.
+- Embeddings are generated locally.
+- Vectors and metadata remain in a local Docker volume.
 - No paid cloud-model API is required.
+- Local `.env` configuration files are excluded from Git.
 
-Do not upload confidential or personally identifiable documents to a public demonstration repository.
+Do not upload confidential or personally identifiable documents to a public demonstration repository or public screenshot.
+
+---
+
+## Design decisions
+
+### Why retrieval-augmented generation?
+
+A financial report can contain more text than a language model should receive in one prompt. Retrieval selects only the chunks most relevant to the user’s question.
+
+### Why document-level filtering?
+
+Every vector contains a `document_id`. Search results are filtered using that identifier, preventing chunks from unrelated documents from entering the answer context.
+
+### Why page metadata?
+
+Page numbers allow the frontend to show citations and let users verify an answer against the original document.
+
+### Why Python `Decimal`?
+
+Binary floating-point arithmetic can introduce small numerical inaccuracies. Financial calculations use `Decimal` for predictable precision and rounding.
+
+### Why separate embedding and language models?
+
+Embedding models represent semantic meaning numerically. Language models generate text and structured information. Each model is used for the task it is designed to perform.
+
+---
 
 ## Current limitations
 
-- Text extraction works with text-based PDFs.
-- Scanned documents require an OCR feature that is not yet implemented.
-- Retrieval quality depends on PDF structure and extracted text quality.
-- The application currently runs as a local development project.
-- Authentication and multi-user access are not yet implemented.
+- Text extraction currently supports text-based PDFs.
+- Scanned PDFs require OCR, which is not yet implemented.
+- Complex tables may lose some structure during PDF extraction.
+- Retrieval quality depends on the quality of extracted text.
+- The project currently targets local single-user operation.
+- Authentication and authorization are not implemented.
+- The application has not been positioned as a regulated financial-advice system.
+
+---
 
 ## Future improvements
 
-- OCR support for scanned financial reports
-- Reranking retrieved chunks
+- OCR support for scanned documents
 - Table-aware financial extraction
-- Multiple-document comparison
+- Retrieved-chunk reranking
+- Multi-document comparison
 - Conversation history
 - Exportable analysis reports
 - Authentication and user workspaces
-- Deployment configuration
+- Frontend component tests
+- Continuous integration with GitHub Actions
+- Deployment profiles for supported environments
+
+---
+
+## Responsible use
+
+FinMind AI is a document-analysis and educational engineering project. Generated answers should be verified against the cited source pages before being used for financial decisions.
+
+---
+
+## Author
+
+**Abu Bakar Attique**
+
+GitHub: [AbuBakerAttique](https://github.com/AbuBakerAttique)
+
+---
+
+<div align="center">
+
+Built with Python, FastAPI, React, Ollama, Qdrant, and Docker.
+
+</div>
