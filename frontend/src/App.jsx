@@ -4,6 +4,8 @@ import DocumentList from "./components/DocumentList";
 import DocumentUpload from "./components/DocumentUpload";
 import HealthStatus from "./components/HealthStatus";
 import AskDocument from "./components/AskDocument";
+import GrowthCalculator from "./components/GrowthCalculator";
+
 function App() {
   const [documentRefreshKey, setDocumentRefreshKey] = useState(0);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -11,6 +13,17 @@ function App() {
   function handleUploadComplete() {
     setDocumentRefreshKey((currentKey) => currentKey + 1);
   }
+  function handleDocumentDeleted(deletedDocumentId) {
+  setSelectedDocument((currentDocument) => {
+    if (currentDocument?.document_id === deletedDocumentId) {
+      return null;
+    }
+
+    return currentDocument;
+  });
+
+  setDocumentRefreshKey((currentKey) => currentKey + 1);
+}
 
   return (
     <main>
@@ -25,6 +38,7 @@ function App() {
         refreshKey={documentRefreshKey}
         selectedDocument={selectedDocument}
         onSelectDocument={setSelectedDocument}
+        onDocumentDeleted={handleDocumentDeleted}
       />
 
       {selectedDocument && (
@@ -34,6 +48,7 @@ function App() {
         </p>
       )}
       <AskDocument selectedDocument={selectedDocument} />
+      <GrowthCalculator selectedDocument={selectedDocument} />
     </main>
   );
 }

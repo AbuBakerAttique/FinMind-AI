@@ -1,184 +1,213 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
+#root {
   width: 100%;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+main {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+main > h1 {
+  margin: 0;
+  color: #102a43;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  line-height: 1;
+  text-align: center;
+  letter-spacing: -0.05em;
+}
+
+main > p {
+  margin: 14px 0 36px;
+  color: #62748a;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+section {
+  margin-bottom: 24px;
+  padding: 28px;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #dce5ef;
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgb(31 55 85 / 8%);
+}
+
+section h2 {
+  margin: 0 0 18px;
+  color: #183b56;
+  font-size: 1.4rem;
+}
+
+section h3 {
+  margin: 20px 0 12px;
+  color: #243b53;
+}
+
+section h4 {
+  margin: 20px 0 10px;
+  color: #334e68;
+}
+
+section p {
+  color: #52667a;
+  line-height: 1.65;
+}
+
+section ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+section li {
+  padding: 13px 16px;
+  color: #176b45;
+  font-weight: 650;
+  text-align: center;
+  background: #eaf9f1;
+  border: 1px solid #bde8d1;
+  border-radius: 10px;
+}
+
+form {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+input[type="file"] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  color: #52667a;
+  background: #f8fafc;
+  border: 1px dashed #9fb3c8;
+  border-radius: 10px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  color: #1f5f99;
+  font-weight: 650;
+  background: #e8f3ff;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 110px;
+  padding: 14px;
+  color: #243b53;
+  line-height: 1.5;
+  background: #f8fafc;
+  border: 1px solid #bcccdc;
+  border-radius: 10px;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #2684ff;
+  box-shadow: 0 0 0 3px rgb(38 132 255 / 15%);
+}
+
+button {
+  padding: 10px 16px;
+  color: white;
+  font-weight: 650;
+  background: #1769aa;
+  border: 1px solid #1769aa;
+  border-radius: 9px;
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: #105a91;
+  box-shadow: 0 7px 16px rgb(23 105 170 / 20%);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  color: #8496a8;
+  background: #e6ebf0;
+  border-color: #d5dde5;
+}
+
+article {
+  margin-top: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #dce5ef;
+  border-radius: 12px;
+}
+
+article h3 {
+  margin: 0 0 10px;
+}
+
+article p {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+
+article button {
+  margin-top: 14px;
+  margin-right: 10px;
+}
+
+article button:last-child {
+  color: #b42318;
+  background: #fff;
+  border-color: #f0b5af;
+}
+
+article button:last-child:hover:not(:disabled) {
+  color: white;
+  background: #b42318;
+  border-color: #b42318;
+  box-shadow: 0 7px 16px rgb(180 35 24 / 18%);
+}
+
+strong {
+  color: #243b53;
+}
+
+@media (max-width: 700px) {
+  main {
+    width: min(100% - 20px, 1100px);
+    padding-top: 28px;
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  section {
+    padding: 20px;
+    border-radius: 14px;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  section ul {
+    grid-template-columns: 1fr;
+  }
+
+  form {
+    flex-direction: column;
+  }
+
+  form button {
+    width: 100%;
+  }
+
+  article button {
+    width: 100%;
+    margin-right: 0;
   }
 }

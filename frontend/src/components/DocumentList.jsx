@@ -4,21 +4,28 @@ function DocumentList({
   refreshKey,
   selectedDocument,
   onSelectDocument,
+  onDocumentDeleted,
 }) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null);
 
   async function loadDocuments() {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8000/documents");
+      const response = await fetch(
+        "http://localhost:8000/documents"
+      );
+
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Could not load documents.");
+        throw new Error(
+          data.detail || "Could not load documents."
+        );
       }
 
       setDocuments(data.documents || []);
@@ -30,14 +37,54 @@ function DocumentList({
   }
 
   useEffect(() => {
-  loadDocuments();
-}, [refreshKey]);
+    loadDocuments();
+  }, [refreshKey]);
+
+  async function deleteDocument(document) {
+    const confirmed = window.confirm(
+      `Delete "${document.filename}"?\n\nThis will remove its chunks and vectors from Qdrant.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingDocumentId(document.document_id);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/documents/${document.document_id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Could not delete document."
+        );
+      }
+
+      onDocumentDeleted(document.document_id);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  }
 
   return (
     <section>
       <h2>Uploaded documents</h2>
 
-      <button type="button" onClick={loadDocuments} disabled={loading}>
+      <button
+        type="button"
+        onClick={loadDocuments}
+        disabled={loading}
+      >
         {loading ? "Loading..." : "Refresh documents"}
       </button>
 
@@ -47,26 +94,39 @@ function DocumentList({
         <p>No documents have been uploaded yet.</p>
       )}
 
-      {documents.map((document) => (
-       <article key={document.document_id}>
-  <h3>{document.filename}</h3>
-  <p>Document ID: {document.document_id}</p>
-  <p>Total pages: {document.total_pages}</p>
-  <p>Total chunks: {document.chunk_count}</p>
+      {documents.map((document) => {
+        const isSelected =
+          selectedDocument?.document_id === document.document_id;
 
-  <button
-    type="button"
-    onClick={() => onSelectDocument(document)}
-    disabled={
-      selectedDocument?.document_id === document.document_id
-    }
-  >
-    {selectedDocument?.document_id === document.document_id
-      ? "Selected"
-      : "Select document"}
-  </button>
-</article>
-      ))}
+        const isDeleting =
+          deletingDocumentId === document.document_id;
+
+        return (
+          <article key={document.document_id}>
+            <h3>{document.filename}</h3>
+
+            <p>Document ID: {document.document_id}</p>
+            <p>Total pages: {document.total_pages}</p>
+            <p>Total chunks: {document.chunk_count}</p>
+
+            <button
+              type="button"
+              onClick={() => onSelectDocument(document)}
+              disabled={isSelected || isDeleting}
+            >
+              {isSelected ? "Selected" : "Select document"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deleteDocument(document)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </article>
+        );
+      })}
     </section>
   );
 }
