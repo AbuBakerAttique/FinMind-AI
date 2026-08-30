@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
 
+async function fetchDocuments() {
+  const response = await fetch("http://localhost:8000/documents");
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Could not load documents.");
+  }
+
+  return data.documents || [];
+}
+
 function DocumentList({
   refreshKey,
   selectedDocument,
@@ -16,19 +27,8 @@ function DocumentList({
     setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8000/documents"
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail || "Could not load documents."
-        );
-      }
-
-      setDocuments(data.documents || []);
+      const loadedDocuments = await fetchDocuments();
+      setDocuments(loadedDocuments);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -37,7 +37,32 @@ function DocumentList({
   }
 
   useEffect(() => {
-    loadDocuments();
+    let cancelled = false;
+
+    async function refreshDocuments() {
+      try {
+        const loadedDocuments = await fetchDocuments();
+
+        if (!cancelled) {
+          setDocuments(loadedDocuments);
+          setError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    refreshDocuments();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey]);
 
   async function deleteDocument(document) {
