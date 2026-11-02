@@ -1,0 +1,43 @@
+FINMIND AI — HOW TO START THE COMPLETE APPLICATION
+
+1. Open Docker Desktop and wait until it shows:
+   Engine running
+
+2. Open Terminal 1 and run:
+
+   cd "/Users/abubaker/Desktop/Projects/FinMind AI"
+   docker compose up -d
+
+3. Open Terminal 2 and run:
+
+   open -a Ollama
+
+4. Open Terminal 3 and run:
+
+   cd "/Users/abubaker/Desktop/Projects/FinMind AI"
+   source .venv/bin/activate
+   python -m uvicorn backend.main:app --reload
+
+5. Open Terminal 4 and run:
+
+   cd "/Users/abubaker/Desktop/Projects/FinMind AI/frontend"
+   npm run dev
+
+6. Open FinMind AI in the browser:
+
+   http://localhost:5173
+
+
+USEFUL ADDRESSES
+
+FinMind AI:
+http://localhost:5173
+
+Backend health:
+http://localhost:8000/health
+
+API documentation:
+http://localhost:8000/docs
+
+Qdrant dashboard:
+http://localhost:6333/dashboard
